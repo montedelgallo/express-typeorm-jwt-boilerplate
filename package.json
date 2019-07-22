@@ -3,8 +3,14 @@
    "version": "0.0.1",
    "description": "Awesome project developed with TypeORM.",
    "devDependencies": {
-      "ts-node": "3.3.0",
       "@types/node": "^8.0.29",
+      "@typescript-eslint/eslint-plugin": "^1.13.0",
+      "@typescript-eslint/parser": "^1.13.0",
+      "eslint": "^6.1.0",
+      "eslint-config-prettier": "^6.0.0",
+      "eslint-plugin-prettier": "^3.1.0",
+      "prettier": "^1.18.2",
+      "ts-node": "3.3.0",
       "typescript": "3.3.3333"
    },
    "dependencies": {
@@ -29,6 +35,7 @@
       "tsc": "tsc",
       "start": "set debug=* && ts-node-dev --respawn --transpileOnly ./src/index.ts",
       "build": "tsc && cd ./build && npm i && node ./index.js",
+      "lint": "tsc --noEmit && eslint '*/**/*.{js,ts,tsx}' --quiet --fix",
       "migration:run": "ts-node ./node_modules/typeorm/cli.js migration:run"
    }
 }

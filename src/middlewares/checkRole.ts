@@ -1,9 +1,9 @@
-import { Request, Response, NextFunction } from "express";
-import { getRepository } from "typeorm";
+import { Request, Response, NextFunction } from 'express';
+import { getRepository } from 'typeorm';
 
-import { User } from "../entity/User";
+import { User } from '../entity/User';
 
-export const checkRole = (roles: Array<string>) => {
+export const checkRole = (roles: string[]) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     //Get the user ID from previous midleware
     const id = res.locals.jwtPayload.userId;
