@@ -9,6 +9,7 @@ export const checkJwt = (req: Request, res: Response, next: NextFunction) => {
 
   //Try to validate the token and get data
   try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     jwtPayload = <any>jwt.verify(token, config.jwtSecret);
     res.locals.jwtPayload = jwtPayload;
   } catch (error) {

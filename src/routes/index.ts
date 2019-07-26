@@ -4,8 +4,8 @@ import user from './user';
 
 const routes = Router();
 
-routes.use('/', (req, res) => {
-  res.send('APIs are Working');
+routes.use('/', (req: Request, res: Response) => {
+  return res.send('APIs are Working');
 });
 routes.use('/auth', auth);
 routes.use('/user', user);
