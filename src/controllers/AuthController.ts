@@ -2,12 +2,17 @@ import { Request, Response } from 'express';
 import * as jwt from 'jsonwebtoken';
 import { getRepository } from 'typeorm';
 import { validate } from 'class-validator';
+import { v4 as uuidv4 } from 'uuid';
 
 import { User } from '../entity/User';
 import config from '../config/config';
 
 class AuthController {
-  static login = async (req: Request, res: Response) => {
+  static createSessionToken = (userId: number, sessionId: string, duration: string) => {
+    return jwt.sign({ userId, sessionId }, config.jwtSecret, { expiresIn: duration });
+  };
+
+  static createSession = async (req: Request, res: Response) => {
     //Check if username and password are set
     let { username, password } = req.body;
     if (!(username && password)) {
@@ -29,11 +34,62 @@ class AuthController {
       return;
     }
 
-    //Sing JWT, valid for 1 hour
-    const token = jwt.sign({ userId: user.id, username: user.username }, config.jwtSecret, { expiresIn: '1h' });
+    const sessionId = uuidv4();
+    const accessPayload = {
+      kind: 'access',
+      userId: user.id,
+      sessionId: sessionId,
+    };
+    const refreshPayload = {
+      kind: 'refresh',
+      userId: user.id,
+      sessionId: sessionId,
+    };
+
+    const accessToken = jwt.sign(accessPayload, config.jwtSecret, {
+      expiresIn: config.accessTokenDuration,
+    });
+    const refreshToken = jwt.sign(refreshPayload, config.jwtSecret, {
+      expiresIn: config.refreshTokenDuration,
+    });
 
     //Send the jwt in the response
-    res.send(token);
+    res.send({ sessionId, accessToken, refreshToken });
+  };
+
+  static refreshSession = async (req: Request, res: Response) => {
+    const sessionId: number = req.params.id;
+    let { refreshToken } = req.body;
+    if (!refreshToken) {
+      res.status(400).send();
+      return;
+    }
+
+    let payload;
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      payload = <any>jwt.verify(refreshToken, config.jwtSecret);
+    } catch (error) {
+      res.status(401).send();
+      return;
+    }
+
+    if (payload.sessionId !== sessionId || payload.kind !== 'refresh') {
+      res.status(401).send();
+      return;
+    }
+
+    const accessPayload = {
+      kind: 'access',
+      userId: payload.userId,
+      sessionId: sessionId,
+    };
+
+    const accessToken = jwt.sign(accessPayload, config.jwtSecret, {
+      expiresIn: config.accessTokenDuration,
+    });
+
+    res.send({ accessToken });
   };
 
   static changePassword = async (req: Request, res: Response) => {

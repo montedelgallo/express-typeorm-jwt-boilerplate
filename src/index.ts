@@ -1,29 +1,51 @@
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
 import 'reflect-metadata';
-import { createConnection } from 'typeorm';
+import { createConnection, Connection } from 'typeorm';
+require('dotenv').config();
+import { createServer, Server as HttpServer } from 'http';
 import * as express from 'express';
-import * as bodyParser from 'body-parser';
-import * as helmet from 'helmet';
-import * as cors from 'cors';
-import routes from './routes';
+import { SnakeNamingStrategy } from 'typeorm-naming-strategies';
+import expressApp from './app';
 
-//Connects to the Database -> then starts the express
-createConnection()
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  .then(async connection => {
-    // Create a new express application instance
-    const app = express();
-
-    // Call midlewares
-    app.use(cors());
-    app.use(helmet());
-    app.use(bodyParser.json());
-
-    //Set all routes from routes folder
-    app.use('/', routes);
-
-    return app.listen(3000, () => {
-      console.log('Server started on port 3000!');
+export default (async function main(expressApp) {
+  try {
+    console.log('Initializing ORM connection...');
+    const connection: Connection = await createConnection({
+      type: 'postgres',
+      host: process.env.DB_HOST,
+      port: Number(process.env.DB_PORT),
+      username: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_NAME,
+      synchronize: true,
+      logging: process.env.NODE_ENV === 'development',
+      entities: ['src/entity/**/*.ts', 'entity/**/*.js'],
+      migrations: ['src/migration/**/*.ts', 'migration/**/*.js'],
+      subscribers: ['src/subscriber/**/*.ts', 'migration/**/*.js'],
+      cli: {
+        entitiesDir: 'src/entity',
+        migrationsDir: 'src/migration',
+        subscribersDir: 'src/subscriber',
+      },
+      namingStrategy: new SnakeNamingStrategy(),
     });
-  })
-  .catch(error => console.log(error));
+
+    // Init express server
+    const app: express.Application = expressApp;
+    const server: HttpServer = createServer(app);
+
+    // Start express server
+    server.listen(3000);
+
+    server.on('listening', () => {
+      console.log('starting server!');
+    });
+
+    server.on('close', () => {
+      connection.close();
+      console.log('aionic-core node server closed');
+    });
+  } catch (err) {
+    console.log(err.stack);
+  }
+})(expressApp);
